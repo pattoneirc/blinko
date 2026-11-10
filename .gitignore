@@ -33,3 +33,6 @@ dev-dist
 .claude/settings.local.json
 target
 server/public
+# 本地签名文件（不要提交）
+*.keystore
+app/src-tauri/gen/android/keystore.properties
