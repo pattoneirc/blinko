@@ -380,8 +380,13 @@ export const useEditorInit = (
     // This is key: load CSS before vditor initialization to ensure styles are available when code highlighting renders
     updateHighlightCSS(theme, cdn);
     
+    // 弹窗里的编辑器给一个最小高度：默认 height:'auto' 时，弹窗如果在开启动画里高度还是 0，
+    // Vditor 会把内容区算成 0（手机上表现为白板、点不进去、键盘不弹）。首页内联编辑器不受影响。
+    const inDialogEditor = !!document.getElementById('global-editor')?.closest('[role="dialog"]')
+
     const vditor = new Vditor("vditor" + "-" + mode, {
       width: '100%',
+      ...(inDialogEditor ? { minHeight: 220, height: '50vh' } : {}),
       "toolbar": isPc ? ToolbarPC : ToolbarMobile,
       mode: store.viewMode === 'raw' ? 'sv' : store.viewMode,
       theme,

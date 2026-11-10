@@ -142,6 +142,7 @@ const Home = observer(() => {
       <LoadingAndEmpty
         isLoading={currentListState.isLoading}
         isEmpty={currentListState.isEmpty}
+        reserveHeight
       />
 
       {

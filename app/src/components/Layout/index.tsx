@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Button, Badge } from '@heroui/react';
 import { Icon } from '@/components/Common/Iconify/icons';
 import { UserStore } from '@/store/user';
@@ -53,6 +53,55 @@ export const CommonLayout = observer(({ children, header }: { children?: React.R
   useEffect(() => {
     if (isPc) setisOpen(false);
   }, [isPc]);
+
+  // 卡片「置顶/删除」面板打开时，全局右滑要让位（SwipeableCard 会广播这个事件）
+  const cardSwipeOpenRef = useRef(false)
+  useEffect(() => {
+    const onCardSwipe = (e: Event) => {
+      cardSwipeOpenRef.current = !!(e as CustomEvent).detail?.open
+    }
+    window.addEventListener('blinko:card-swipe', onCardSwipe as EventListener)
+    return () => window.removeEventListener('blinko:card-swipe', onCardSwipe as EventListener)
+  }, [])
+
+  // 手机端：全屏范围右滑打开标签侧栏；侧栏打开时左滑收起。
+  // 卡片只响应左滑（置顶/删除）；卡片操作面板打开时，全局右滑让位给卡片自己收回。
+  useEffect(() => {
+    if (isPc) return;
+    let startX = 0, startY = 0, tracking = false;
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      if (cardSwipeOpenRef.current) return;
+      // 兜底：万一是从别处冒泡来的 touch，也能看 DOM 上的位移判断
+      let el: HTMLElement | null = e.target as HTMLElement;
+      while (el && el !== document.body) {
+        const tf = (el.style && el.style.transform) || ''
+        if (/translateX\(\s*-/.test(tf)) return;
+        el = el.parentElement;
+      }
+      tracking = true; startX = t.clientX; startY = t.clientY;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!tracking) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if (Math.abs(dy) > 60) { tracking = false; return; }
+      if (!isOpen && dx > 45) { tracking = false; setisOpen(true); }
+      else if (isOpen && dx < -45) { tracking = false; setisOpen(false); }
+    };
+    const onEnd = () => { tracking = false; };
+    window.addEventListener('touchstart', onStart, { passive: true });
+    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchend', onEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onStart);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onEnd);
+    };
+  }, [isPc, isOpen]);
 
   useEffect(() => {
     setClient(true);

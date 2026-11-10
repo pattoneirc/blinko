@@ -77,7 +77,7 @@ const ShowCustomIconPicker = (element, theme) => {
   })
 }
 
-export const TagListPanel = observer(() => {
+export const TagListPanel = observer(({ onItemClick }: { onItemClick?: () => void }) => {
   const blinko = RootStore.Get(BlinkoStore);
   const base = RootStore.Get(BaseStore);
   const { theme } = useTheme();
@@ -119,6 +119,7 @@ export const TagListPanel = observer(() => {
                 base.currentRouter = blinko.allTagRouter
                 blinko.updateTagFilter(Number(element.id))
                 navigate('/?path=all&tagId=' + element.id, { replace: true })
+                onItemClick?.()
               }}
             >
               {isBranch ? (

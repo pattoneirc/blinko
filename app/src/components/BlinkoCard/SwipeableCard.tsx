@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Icon } from '@/components/Common/Iconify/icons';
 import { useTranslation } from 'react-i18next';
 
@@ -102,6 +102,11 @@ export const SwipeableCard = ({
     setTranslateX(0);
     setIsOpen(false);
   }, []);
+
+  // 把“操作面板是否打开”广播出去，让全局右滑（打开标签侧栏）在此时让位
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('blinko:card-swipe', { detail: { open: isOpen } }));
+  }, [isOpen]);
 
   const handlePinClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();

@@ -109,7 +109,7 @@ export const Sidebar = observer(({ onItemClick }: SidebarProps) => {
                 {!base.isSidebarCollapsed && <span className="!transition-all">{t(i.title)}</span>}
               </Link>
             ))}
-          {!base.isSidebarCollapsed && blinkoStore.tagList.value?.listTags.length != 0 && blinkoStore.tagList.value?.listTags && <TagListPanel />}
+          {!base.isSidebarCollapsed && blinkoStore.tagList.value?.listTags.length != 0 && blinkoStore.tagList.value?.listTags && <TagListPanel onItemClick={onItemClick} />}
         </div>
       </ScrollShadow>
 

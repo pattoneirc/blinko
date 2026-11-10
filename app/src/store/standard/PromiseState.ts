@@ -294,6 +294,7 @@ export class PromisePageState<T extends (...args: any) => Promise<any>, U = Retu
   }
   async callNextPage(...args: Parameters<T>): Promise<Awaited<U> | undefined> {
     if (this.loading.value) return
+    if (this.isLoadAll) return
     this.page++
     //@ts-ignore
     return await this.call(...args)

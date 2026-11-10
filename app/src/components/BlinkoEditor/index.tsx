@@ -3,7 +3,8 @@ import Editor from "../Common/Editor"
 import { RootStore } from "@/store"
 import { BlinkoStore } from "@/store/blinkoStore"
 import dayjs from "@/lib/dayjs"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useMediaQuery } from "usehooks-ts"
 import { NoteType } from "@shared/lib/types"
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom"
 
@@ -25,6 +26,24 @@ export const BlinkoEditor = observer(({ mode, onSended, onHeightChange, isInDial
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const location = useLocation()
+  const isPc = useMediaQuery('(min-width: 768px)')
+  const [editorBroken, setEditorBroken] = useState(false)
+
+  // 部分 Android WebView（vivo/Via 等）上 Vditor 初始化失败，表现为白色空面板、无法输入。
+  // 3 秒内拿不到可编辑区域就切到纯文本框兜底。
+  useEffect(() => {
+    if (isPc) return
+    let tries = 0
+    const timer = setInterval(() => {
+      tries++
+      // 只认真正可见的那个编辑面（Vditor 会同时渲染 wysiwyg / ir / sv 多个隐藏面板）
+      const els = Array.from(document.querySelectorAll('#global-editor .vditor-reset')) as HTMLElement[]
+      const ok = els.some(e => e.offsetParent !== null && e.getAttribute('contenteditable') === 'true' && e.clientHeight > 30)
+      if (ok) { clearInterval(timer); setEditorBroken(false); return }
+      if (tries >= 6) { clearInterval(timer); setEditorBroken(true) }
+    }, 500)
+    return () => clearInterval(timer)
+  }, [mode, isPc])
 
   const store = RootStore.Local(() => ({
     get noteContent() {
@@ -117,6 +136,44 @@ export const BlinkoEditor = observer(({ mode, onSended, onHeightChange, isInDial
 
   // Use Tauri hotkey hook
 
+
+  const fallbackSend = async () => {
+    const content = (store.noteContent || '').trim()
+    if (!content) return
+    if (isCreateMode) {
+      // @ts-ignore
+      await blinko.upsertNote.call({ type: blinko.noteTypeDefault, content, references: [], attachments: [], refresh: false })
+      blinko.createContentStorage.clear()
+      blinko.createAttachmentsStorage.clear()
+      blinko.updateTicker++
+    } else {
+      if (!blinko.curSelectedNote) return
+      // @ts-ignore
+      await blinko.upsertNote.call({ id: blinko.curSelectedNote.id, type: blinko.curSelectedNote.type, content, references: [], attachments: [], refresh: true })
+      blinko.updateTicker++
+    }
+    onSended?.()
+  }
+
+  if (editorBroken) {
+    return (
+      <div className="h-full flex flex-col" id='global-editor'>
+        <textarea
+          className="flex-1 w-full resize-none bg-background text-foreground p-3 outline-none"
+          style={{ minHeight: '45vh' }}
+          placeholder="我有一个新想法..."
+          value={store.noteContent}
+          onChange={e => { store.noteContent = e.target.value }}
+        />
+        <div className="flex justify-end p-2 border-t border-border">
+          <button
+            className="px-4 py-2 rounded-full bg-primary text-primary-foreground font-bold"
+            onClick={fallbackSend}
+          >发送</button>
+        </div>
+      </div>
+    )
+  }
 
   return <div className={`h-full flex flex-col ${withoutOutline ? '' : ''}`} ref={editorRef} id='global-editor' data-tauri-drag-region onClick={() => {
     blinko.isCreateMode = mode == 'create'

@@ -338,3 +338,16 @@ body {
 .group[data-focus-visible="true"] .group-data-\[focus-visible\=true\]\:ring-2 {
   --tw-ring-shadow: 0 !important;
 }
+/* 移动端兜底：部分 Android WebView 上弹窗面板背景会变透明、编辑器高度会塌陷
+   （表现为只看到底部工具栏、中间一片模糊、键盘不弹出） */
+@media (max-width: 767px) {
+  [role="dialog"] {
+    background-color: var(--background, #ffffff);
+  }
+  [role="dialog"] .vditor-reset {
+    min-height: 45vh !important;
+  }
+  [role="dialog"] .vditor {
+    min-height: 50vh;
+  }
+}

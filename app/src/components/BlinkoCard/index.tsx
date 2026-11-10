@@ -7,7 +7,7 @@ import { Note } from '@shared/lib/types';
 import { ShowEditBlinkoModel } from "../BlinkoRightClickMenu";
 import { useMediaQuery } from "usehooks-ts";
 import { _ } from '@/lib/lodash';
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { CardBlogBox } from "./cardBlogBox";
 import { NoteContent } from "./noteContent";
 import { helper } from "@/lib/helper";
@@ -64,12 +64,18 @@ export const BlinkoCard = observer(({ blinkoItem, account, isShareMode = false, 
   }) || '';
 
 
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleClick = () => {
     if (blinko.isMultiSelectMode) {
       blinko.onMultiSelectNote(blinkoItem.id!);
     } else if (blinkoItem.isBlog && !isShareMode) {
-      setIsFullscreenEditorOpen(true);
-      blinko.fullscreenEditorNoteId = blinkoItem.id!;
+      // 延迟打开全屏编辑，给双击留出判定窗口（否则第一次点击就把全屏打开，双击永远到不了编辑弹窗）
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+      clickTimerRef.current = setTimeout(() => {
+        clickTimerRef.current = null;
+        setIsFullscreenEditorOpen(true);
+        blinko.fullscreenEditorNoteId = blinkoItem.id!;
+      }, 240);
     }
   };
 
@@ -80,6 +86,7 @@ export const BlinkoCard = observer(({ blinkoItem, account, isShareMode = false, 
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (isShareMode) return;
+    if (clickTimerRef.current) { clearTimeout(clickTimerRef.current); clickTimerRef.current = null; }
     blinko.curSelectedNote = _.cloneDeep(blinkoItem);
     ShowEditBlinkoModel();
     FocusEditorFixMobile()
